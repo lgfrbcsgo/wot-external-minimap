@@ -7,7 +7,7 @@ WoT mod which allows the minimap to be displayed on a second monitor or device
    Make sure you're using Python 2.
    
 ## Usage
-1. Start WoT and open a new blank window in web browser.
+1. Start WoT and open a new blank tab in your web browser.
 2. Open the developer tools (press F12 in Chrome).
 3. Paste the following script into the console.
 
