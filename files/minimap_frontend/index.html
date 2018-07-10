@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<pre id="output"></pre>
+	<script>
+		var output = document.getElementById('output');
+		var socket = new WebSocket("ws://localhost:13371");
+		socket.onmessage = function (event) {
+		  var reader = new FileReader();
+		  reader.onload = function() {
+			var data = JSON.parse(reader.result);
+			output.innerHTML = JSON.stringify(data, null, 2);
+			console.log(data);
+		  }
+		  reader.readAsText(event.data);
+		}
+	</script>
+</body>
+</html>
