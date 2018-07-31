@@ -1,103 +1,48 @@
 import os
 import urllib
 import posixpath
+from abc import ABCMeta, abstractmethod
 
-from threading import Thread, RLock
-from SocketServer import TCPServer
+from threading import Thread
+from SocketServer import ThreadingTCPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 
-from ModExternalMinimap.lib.SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
+from ModExternalMinimap.lib.websocket_server import WebsocketServer
 
 
 class ConcurrentServer(object):
-    def __init__(self):
-        self._server = None
+    __metaclass__ = ABCMeta
+
+    def __init__(self, host='', port=8000):
+        self.host = host
+        self.port = port
         self.__thread = None
-        self.__while_running_lock = RLock()
-        self.__closed = False
 
     def start(self):
         if self.__thread is not None:
             return
-
-        self.__closed = False
-        self._server = self._create_server()
-        self.__thread = Thread(target=self.__serve)
+        self.__thread = Thread(target=self._run_function)
         self.__thread.start()
 
     def stop(self):
-        if self._server is None:
-            return
-
-        self.__closed = True
-
-        with self.__while_running_lock:
-            self._close_server(self._server)
-
+        self._close_function()
         self.__thread.join()
         self.__thread = None
-        self._server = None
 
-    def _create_server(self):
-        raise NotImplementedError()
+    @abstractmethod
+    def _run_function(self):
+        pass
 
-    def _serve_once(self, server):
-        raise NotImplementedError()
-
-    def _close_server(self, server):
-        raise NotImplementedError()
-
-    def __serve(self):
-        with self.__while_running_lock:
-            while not self.__closed:
-                self._serve_once(self._server)
+    @abstractmethod
+    def _close_function(self):
+        pass
 
 
 class ConcurrentHTTPServer(ConcurrentServer):
-    def __init__(self, host='', port=8000, handler_factory=SimpleHTTPRequestHandler):
-        super(ConcurrentHTTPServer, self).__init__()
-        self._host = host
-        self._port = port
-        self._handler_factory = handler_factory
-
-    def _create_server(self):
-        return TCPServer((self._host, self._port), self._handler_factory)
-
-    def _serve_once(self, server):
-        server.handle_request()
-
-    def _close_server(self, server):
-        # TODO: server only closes if connections get closed
-        server.server_close()
-
-
-class ConcurrentWebSocketServer(ConcurrentServer):
-    def __init__(self, host='', port=8001, ws_factory=WebSocket):
-        super(ConcurrentWebSocketServer, self).__init__()
-        self._host = host
-        self._port = port
-        self._ws_factory = ws_factory
-
-    def _create_server(self):
-        return SimpleWebSocketServer(self._host, self._port, self._ws_factory)
-
-    def _serve_once(self, server):
-        server.serveonce()
-
-    def _close_server(self, server):
-        server.close()
-
-
-class DirectoryServingHTTPServer(ConcurrentHTTPServer):
     def __init__(self, host='', port=8000, directory='.'):
-        handler_factory = DirectoryServingHTTPServer._make_handler_factory(directory)
-        super(DirectoryServingHTTPServer, self).__init__(host, port, handler_factory)
+        super(ConcurrentHTTPServer, self).__init__(host=host, port=port)
 
-    @staticmethod
-    def _make_handler_factory(directory):
-        directory = os.path.abspath(directory)
-
-        class HandlerFactory(SimpleHTTPRequestHandler):
+        class RequestHandler(SimpleHTTPRequestHandler):
             def translate_path(self, path):
                 path = path.split('?', 1)[0]
                 path = path.split('#', 1)[0]
@@ -114,10 +59,56 @@ class DirectoryServingHTTPServer(ConcurrentHTTPServer):
                     path += '/'
                 return path
 
-        return HandlerFactory
+        self._request_handler = RequestHandler
+        self._server = None
+
+    def _run_function(self):
+        self._server = ThreadingTCPServer((self.host, self.port), self._request_handler)
+        self._server.daemon_threads = True
+        self._server.serve_forever()
+
+    def _close_function(self):
+        self._server.shutdown()
+        self._server.server_close()
+        self._server = None
 
 
-class BroadcastingWebSocketServer(ConcurrentWebSocketServer):
-    def broadcast(self, msg):
-        for client in self._server.connections.itervalues():
-            client.sendMessage(msg)
+class ConcurrentWebSocketServer(ConcurrentServer):
+    def __init__(self, host='', port=8001, allowed_origins=None):
+        super(ConcurrentWebSocketServer, self).__init__(host=host, port=port)
+        self._server = None
+        self._allowed_origins = allowed_origins
+
+    def _run_function(self):
+        self._server = WebsocketServer(host=self.host, port=self.port)
+        self._server.daemon_threads = True
+        self._server.set_fn_new_client(lambda c, _: self.on_client_connect(c))
+        self._server.set_fn_client_left(lambda c, _: self.on_client_disconnect(c))
+        self._server.set_fn_message_received(lambda c, _, m: self.on_message(c, m))
+        self._server.set_fn_allow_connection(self.allow_connection)
+        self._server.serve_forever()
+
+    def _close_function(self):
+        self._server.shutdown()
+        self._server.server_close()
+        self._server = None
+
+    def send_message(self, client, message):
+        if self._server:
+            self._server.send_message(client, message)
+
+    def broadcast(self, message):
+        if self._server:
+            self._server.send_message_to_all(message)
+
+    def on_client_connect(self, client):
+        pass
+
+    def on_client_disconnect(self, client):
+        pass
+
+    def on_message(self, client, message):
+        pass
+    
+    def allow_connection(self, origin):
+        return self._allowed_origins is None or origin in self._allowed_origins
