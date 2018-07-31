@@ -67,6 +67,7 @@ class ConcurrentHTTPServer(ConcurrentServer):
         server.handle_request()
 
     def _close_server(self, server):
+        # TODO: server only closes if connections get closed
         server.server_close()
 
 
