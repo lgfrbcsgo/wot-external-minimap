@@ -6,7 +6,7 @@ from ModExternalMinimap.minimap_symbols import get_symbol
 
 
 @contextmanager
-def ignore(*Errors):
+def suppress(*Errors):
     try:
         yield None
     except Exception as err:
@@ -38,28 +38,32 @@ class MinimapData(object):
         self._entries[entryID] = Symbol(entryID, container, active, matrix)
 
     def delEntry(self, component, entryID):
-        with ignore(KeyError):
+        with suppress(KeyError):
             del self._entries[entryID]
 
     def invoke(self, component, entryID, *signature):
-        with ignore(KeyError):
+        with suppress(KeyError):
             self._entries[entryID].invoke(*signature)
 
     def move(self, component, entryID, container):
-        with ignore(KeyError):
+        with suppress(KeyError):
             self._entries[entryID].container = container
 
     def setMatrix(self, component, entryID, matrix):
-        with ignore(KeyError):
+        with suppress(KeyError):
             self._entries[entryID].set_matrix(matrix)
 
     def setActive(self, component, entryID, active):
-        with ignore(KeyError):
+        with suppress(KeyError):
             self._entries[entryID].active = active
 
     @property
-    def plain_list(self):
-        return [entry.plain_object for entry in self._entries.itervalues()]
+    def entries(self):
+        return self._entries.itervalues()
+
+    @property
+    def plain_entries(self):
+        return [entry.plain_object for entry in self.entries]
 
     def _setup_hooks(self):
         hook_minimap(self.addEntry, after=True)

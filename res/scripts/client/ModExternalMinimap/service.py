@@ -54,4 +54,4 @@ class ExternalMinimapController(IExternalMinimapController):
         self._callback_id = None
 
     def _push_update(self):
-        self.broadcast(dict(entries=self.map_data.plain_list))
+        self.broadcast(dict(entries=self.map_data.plain_entries))
