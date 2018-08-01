@@ -21,6 +21,7 @@ class MinimapData(object):
 
     def clear(self):
         self._entries = dict()
+        self.clear_events()
 
     def clear_events(self):
         self._event_basket.clear()
