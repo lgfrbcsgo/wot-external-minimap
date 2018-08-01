@@ -18,7 +18,7 @@ class ExternalMinimapController(IExternalMinimapController):
 
     def __init__(self):
         super(ExternalMinimapController, self).__init__()
-        self._http_server = ConcurrentHTTPServer(port=13370, directory='mods/files/external_minimap')
+        self._http_server = ConcurrentHTTPServer(port=13370, directory='mods/minimap-ui/dist')
         self._websocket_server = ConcurrentWebSocketServer(port=13371, allowed_origins=[
             'http://localhost:13370',
             'http://127.0.0.1:13370'
