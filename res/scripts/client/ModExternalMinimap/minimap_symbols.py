@@ -1,5 +1,5 @@
 from Math import Matrix
-from ModExternalMinimap.utils import Event, assign
+from ModExternalMinimap.utils import Invocation, assign
 
 
 _SYMBOLS = dict()
@@ -34,7 +34,7 @@ class Symbol(object):
         if func:
             return func(*args)
         if self._event_basket:
-            self._event_basket.push(Event(name=func_name, data=args, target=self.id, symbol=self.symbol))
+            self._event_basket.push(Invocation(name=func_name, data=args, target=self.id, symbol=self.symbol))
 
     def set_matrix(self, matrix_or_mprovider):
         self._matrix_or_mprovider = matrix_or_mprovider

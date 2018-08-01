@@ -1,4 +1,5 @@
 from gui.Scaleform.daapi.view.battle.shared.minimap.component import MinimapComponent
+from gui.Scaleform.daapi.view.battle.shared.minimap.settings import TRANSFORM_FLAG
 
 from ModExternalMinimap.hooks import run_before, run_after
 from ModExternalMinimap.utils import EventBasket, suppress
@@ -24,7 +25,7 @@ class MinimapData(object):
     def clear_events(self):
         self._event_basket.clear()
 
-    def addEntry(self, entryID, component, symbol, container, matrix=None, active=False, **kwargs):
+    def addEntry(self, entryID, component, symbol, container, matrix=None, active=False, transformProps=TRANSFORM_FLAG.DEFAULT):
         Symbol = get_symbol(symbol)
         self._entries[entryID] = Symbol(entryID, container, active, matrix, event_basket=self._event_basket)
 

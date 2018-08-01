@@ -2,7 +2,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 
 
-Event = namedtuple('Event', ['target', 'name', 'data', 'symbol'])
+Invocation = namedtuple('Invocation', ['target', 'name', 'data', 'symbol'])
 
 
 class EventBasket(object):
@@ -13,7 +13,7 @@ class EventBasket(object):
         del self._events[:]
 
     def push(self, event):
-        if isinstance(event, Event):
+        if isinstance(event, Invocation):
             self._events.append(event)
 
     @property
