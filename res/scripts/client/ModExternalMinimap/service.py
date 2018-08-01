@@ -21,7 +21,8 @@ class ExternalMinimapController(IExternalMinimapController):
         self._http_server = ConcurrentHTTPServer(port=13370, directory='mods/minimap-ui/dist')
         self._websocket_server = ConcurrentWebSocketServer(port=13371, allowed_origins=[
             'http://localhost:13370',
-            'http://127.0.0.1:13370'
+            'http://external-minimap:8080',
+            'http://external-minimap:13370',
         ])
         self.map_data = MinimapData()
         self._callback_id = None
@@ -34,6 +35,7 @@ class ExternalMinimapController(IExternalMinimapController):
         self._stop_periodic_update()
         self._http_server.stop()
         self._websocket_server.stop()
+        self.map_data.clear()
 
     def broadcast(self, *msgs):
         if len(msgs) == 1:
@@ -42,15 +44,17 @@ class ExternalMinimapController(IExternalMinimapController):
 
     def onAvatarBecomePlayer(self):
         self.map_data.clear()
+        self.map_data.on_update += self._push_update
         self._start_periodic_update()
 
     def onAccountBecomePlayer(self):
+        self.map_data.on_update -= self._push_update
         self._stop_periodic_update()
 
     def _start_periodic_update(self):
         self._push_update()
-        # callback on next frame
-        self._callback_id = BigWorld.callback(0, self._start_periodic_update)
+        # update 3 times per second
+        self._callback_id = BigWorld.callback(0.3333, self._start_periodic_update)
 
     def _stop_periodic_update(self):
         if self._callback_id is None:
@@ -66,7 +70,8 @@ class ExternalMinimapController(IExternalMinimapController):
         height = upper_right[1] - bottom_left[1]
         return dict(
             name=arena_type.getName(),
-            size=(width, height)
+            size=(width, height),
+            texture=arena_type.getMinimapTexture()
         )
 
     def _push_update(self):

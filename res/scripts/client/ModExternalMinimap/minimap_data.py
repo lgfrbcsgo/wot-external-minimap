@@ -1,3 +1,5 @@
+from Event import Event, EventManager
+
 from gui.Scaleform.daapi.view.battle.shared.minimap.component import MinimapComponent
 from gui.Scaleform.daapi.view.battle.shared.minimap.settings import TRANSFORM_FLAG
 
@@ -18,10 +20,13 @@ class MinimapData(object):
         self._entries = dict()
         self._setup_hooks()
         self._event_basket = EventBasket()
+        self._event_mgr = EventManager()
+        self.on_update = Event(self._event_mgr)
 
     def clear(self):
         self._entries = dict()
         self.clear_events()
+        self._event_mgr.clear()
 
     def clear_events(self):
         self._event_basket.clear()
@@ -29,26 +34,32 @@ class MinimapData(object):
     def addEntry(self, entryID, component, symbol, container, matrix=None, active=False, transformProps=TRANSFORM_FLAG.DEFAULT):
         Symbol = get_symbol(symbol)
         self._entries[entryID] = Symbol(entryID, container, active, matrix, event_basket=self._event_basket)
+        self.on_update()
 
     def delEntry(self, component, entryID):
         with suppress(KeyError):
             del self._entries[entryID]
+            self.on_update()
 
     def invoke(self, component, entryID, *signature):
         with suppress(KeyError):
             self._entries[entryID].invoke(*signature)
+            self.on_update()
 
     def move(self, component, entryID, container):
         with suppress(KeyError):
             self._entries[entryID].container = container
+            self.on_update()
 
     def setMatrix(self, component, entryID, matrix):
         with suppress(KeyError):
             self._entries[entryID].set_matrix(matrix)
+            self.on_update()
 
     def setActive(self, component, entryID, active):
         with suppress(KeyError):
             self._entries[entryID].active = active
+            self.on_update()
 
     @property
     def entries(self):

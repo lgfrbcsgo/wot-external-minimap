@@ -51,12 +51,12 @@ class Symbol(object):
     @property
     def position(self):
         if self.matrix:
-            return self.matrix.translation.list()
+            return [round(part, 1) for part in self.matrix.translation.list()]
 
     @property
     def orientation(self):
         if self.matrix:
-            return self.matrix.pitch, self.matrix.roll, self.matrix.yaw
+            return [round(part, 1) for part in (self.matrix.pitch, self.matrix.roll, self.matrix.yaw)]
 
     @property
     def symbol(self):
