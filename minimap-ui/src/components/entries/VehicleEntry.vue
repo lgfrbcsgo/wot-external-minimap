@@ -1,5 +1,6 @@
 <template>
-    <circle v-if="entry.active" :cx="position[0]" :cy="position[1]" r="15" stroke="black" stroke-width="2" :fill="color"/>
+    <circle v-if="entry.active" :cx="position[0]" :cy="position[1]" r="15" stroke="black" stroke-width="2"
+            :fill="color"/>
 </template>
 
 <script lang="ts">
@@ -12,10 +13,14 @@
         @Prop({required: true}) entry!: VehicleEntry_;
 
         get color(): string {
-            if (this.entry.team === 'ally') {
-                return 'green';
+            switch (this.entry.team) {
+                case 'ally':
+                    return 'green';
+                case 'squadman':
+                    return 'orange';
+                default:
+                    return this.entry.spotted ? 'red' : 'grey';
             }
-            return this.entry.spotted ? 'red' : 'grey';
         }
     }
 </script>

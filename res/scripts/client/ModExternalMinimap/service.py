@@ -21,8 +21,7 @@ class ExternalMinimapController(IExternalMinimapController):
         self._http_server = ConcurrentHTTPServer(port=13370, directory='mods/minimap-ui/dist')
         self._websocket_server = ConcurrentWebSocketServer(port=13371, allowed_origins=[
             'http://localhost:13370',
-            'http://external-minimap:8080',
-            'http://external-minimap:13370',
+            'http://external-minimap:8080'  # alias of localhost for development
         ])
         self.map_data = MinimapData()
         self._callback_id = None

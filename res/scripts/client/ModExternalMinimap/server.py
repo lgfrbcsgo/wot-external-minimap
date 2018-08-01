@@ -111,4 +111,4 @@ class ConcurrentWebSocketServer(ConcurrentServer):
         pass
     
     def allow_connection(self, origin):
-        return self._allowed_origins is None or origin in self._allowed_origins
+        return self._allowed_origins is None or origin is None or origin in self._allowed_origins

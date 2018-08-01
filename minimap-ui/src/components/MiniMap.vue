@@ -20,12 +20,13 @@
             return this.$store.state.miniMapEntries;
         }
 
-        get texture(): string {
-            return `/minimap/vanilla/${this.$store.state.arena.texture}.png`;
+        get texture(): string | null {
+            const texture = this.$store.state.arena.texture;
+            return texture !== '' ? `/minimap/vanilla/${texture}.png` : null;
         }
 
         async created () {
-            await miniMapConnector.connect('ws://localhost:13371');
+            await miniMapConnector.connect(`ws://${location.hostname}:13371`);
         }
 
         async beforeDestroy () {
