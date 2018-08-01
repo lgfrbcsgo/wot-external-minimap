@@ -3,10 +3,11 @@
 <body>
 <pre id="output"></pre>
 <script>
-    var output = document.getElementById('output');
-    var socket = new WebSocket("ws://localhost:13371");
+    const output = document.getElementById('output');
+    const socket = new WebSocket("ws://localhost:13371");
     socket.onmessage = function (event) {
-        var data = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
+        data.events.forEach(event => console.warn('unhandled event', event));
         output.innerHTML = JSON.stringify(data, null, 2);
         console.log(data);
     }

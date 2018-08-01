@@ -1,17 +1,8 @@
-from contextlib import contextmanager
 from gui.Scaleform.daapi.view.battle.shared.minimap.component import MinimapComponent
 
 from ModExternalMinimap.hooks import run_before, run_after
+from ModExternalMinimap.utils import EventBasket, suppress
 from ModExternalMinimap.minimap_symbols import get_symbol
-
-
-@contextmanager
-def suppress(*Errors):
-    try:
-        yield None
-    except Exception as err:
-        if not reduce(lambda t, Error: t or isinstance(err, Error), Errors, False):
-            raise err
 
 
 def hook_minimap(func, after=False):
@@ -25,17 +16,17 @@ class MinimapData(object):
     def __init__(self):
         self._entries = dict()
         self._setup_hooks()
+        self._event_basket = EventBasket()
 
     def clear(self):
         self._entries = dict()
 
-    def clear_invocations(self):
-        for entry in self._entries.itervalues():
-            entry.clear_invocations()
+    def clear_events(self):
+        self._event_basket.clear()
 
     def addEntry(self, entryID, component, symbol, container, matrix=None, active=False, **kwargs):
         Symbol = get_symbol(symbol)
-        self._entries[entryID] = Symbol(entryID, container, active, matrix)
+        self._entries[entryID] = Symbol(entryID, container, active, matrix, event_basket=self._event_basket)
 
     def delEntry(self, component, entryID):
         with suppress(KeyError):
@@ -59,11 +50,11 @@ class MinimapData(object):
 
     @property
     def entries(self):
-        return self._entries.itervalues()
+        return map(lambda e: e.plain_object, self._entries.itervalues())
 
     @property
-    def plain_entries(self):
-        return [entry.plain_object for entry in self.entries]
+    def events(self):
+        return self._event_basket.events
 
     def _setup_hooks(self):
         hook_minimap(self.addEntry, after=True)

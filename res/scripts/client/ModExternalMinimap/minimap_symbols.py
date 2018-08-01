@@ -1,4 +1,5 @@
 from Math import Matrix
+from ModExternalMinimap.utils import Event, assign
 
 
 _SYMBOLS = dict()
@@ -21,21 +22,19 @@ def get_symbol(name):
 
 
 class Symbol(object):
-    def __init__(self, id, container, active=False, matrix_or_mprovider=None):
+    def __init__(self, id, container, active=False, matrix_or_mprovider=None, event_basket=None):
         self._id = id
         self.container = container
         self.active = active
         self._matrix_or_mprovider = matrix_or_mprovider
-        self.unhandled_invocations = []
+        self._event_basket = event_basket
 
     def invoke(self, func_name, *args):
         func = getattr(self, 'handle_%s' % func_name, False)
         if func:
             return func(*args)
-        self.unhandled_invocations.append(dict(name=func_name, args=args))
-
-    def clear_invocations(self):
-        self.unhandled_invocations = []
+        if self._event_basket:
+            self._event_basket.push(Event(name=func_name, data=args, target=self.id, symbol=self.symbol))
 
     def set_matrix(self, matrix_or_mprovider):
         self._matrix_or_mprovider = matrix_or_mprovider
@@ -60,15 +59,33 @@ class Symbol(object):
             return self.matrix.pitch, self.matrix.roll, self.matrix.yaw
 
     @property
+    def symbol(self):
+        return self.__class__.__name__
+
+    @property
     def plain_object(self):
         return dict(
             id=self.id,
             active=self.active,
             position=self.position,
             orientation=self.orientation,
-            invocations=self.unhandled_invocations,
-            symbol=self.__class__.__name__,
+            symbol=self.symbol,
             container=self.container
+        )
+
+
+@register_symbol
+class ArcadeCameraEntry(Symbol):
+    show_direction_line = True
+
+    def handle_hideDirectionLine(self):
+        self.show_direction_line = False
+
+    @property
+    def plain_object(self):
+        return assign(
+            super(ArcadeCameraEntry, self).plain_object,
+            showDirectionLine=self.show_direction_line
         )
 
 
@@ -103,10 +120,15 @@ class ViewRangeCirclesEntry(Symbol):
     def handle_as_updateDynRange(self, actual):
         self.view_range = actual
 
+    def handle_as_removeAllCircles(self):
+        self.show_max_render_range = False,
+        self.show_max_view_range = False,
+        self.show_view_range = False
+
     @property
     def plain_object(self):
-        obj = super(ViewRangeCirclesEntry, self).plain_object
-        obj.update(
+        return assign(
+            super(ViewRangeCirclesEntry, self).plain_object,
             arenaSize=self.arena_size,
             showMaxRenderRange=self.show_max_render_range,
             maxRenderRange=self.max_render_range,
@@ -115,7 +137,6 @@ class ViewRangeCirclesEntry(Symbol):
             showViewRange=self.show_view_range,
             viewRange=self.view_range
         )
-        return obj
 
 
 class TeamBaseEntry(Symbol):
@@ -126,9 +147,10 @@ class TeamBaseEntry(Symbol):
 
     @property
     def plain_object(self):
-        obj = super(TeamBaseEntry, self).plain_object
-        obj.update(number=self.number)
-        return obj
+        return assign(
+            super(TeamBaseEntry, self).plain_object,
+            number=self.number
+        )
 
 
 @register_symbol
@@ -164,8 +186,8 @@ class VehicleEntry(Symbol):
 
     @property
     def plain_object(self):
-        obj = super(VehicleEntry, self).plain_object
-        obj.update(
+        return assign(
+            super(VehicleEntry, self).plain_object,
             playerID=self.player_id,
             type=self.type,
             name=self.name,
@@ -173,4 +195,3 @@ class VehicleEntry(Symbol):
             spotted=self.spotted,
             alive=self.alive
         )
-        return obj

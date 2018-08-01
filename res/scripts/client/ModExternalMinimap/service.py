@@ -1,5 +1,8 @@
 import json
 import BigWorld
+
+from helpers import dependency
+from skeletons.gui.battle_session import IBattleSessionProvider
 from skeletons.gui.game_control import IGameController
 
 from ModExternalMinimap.server import ConcurrentHTTPServer, ConcurrentWebSocketServer
@@ -11,6 +14,8 @@ class IExternalMinimapController(IGameController):
 
 
 class ExternalMinimapController(IExternalMinimapController):
+    session_provider = dependency.descriptor(IBattleSessionProvider)
+
     def __init__(self):
         super(ExternalMinimapController, self).__init__()
         self._http_server = ConcurrentHTTPServer(port=13370, directory='mods/files/external_minimap')
@@ -53,5 +58,21 @@ class ExternalMinimapController(IExternalMinimapController):
         BigWorld.cancelCallback(self._callback_id)
         self._callback_id = None
 
+    @property
+    def arena(self):
+        arena_type = self.session_provider.arenaVisitor.type
+        bottom_left, upper_right = arena_type.getBoundingBox()
+        width = upper_right[0] - bottom_left[0]
+        height = upper_right[1] - bottom_left[1]
+        return dict(
+            name=arena_type.getName(),
+            size=(width, height)
+        )
+
     def _push_update(self):
-        self.broadcast(dict(entries=self.map_data.plain_entries))
+        self.broadcast(dict(
+            entries=self.map_data.entries,
+            events=self.map_data.events,
+            arena=self.arena
+        ))
+        self.map_data.clear_events()
